@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro Stats Arena</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="header-content">
+                <div class="logo-area">
+                    <i class="fas fa-swords logo-icon"></i>
+                    <div class="title-group">
+                        <h1>PRO STATS <span class="highlight">ARENA</span></h1>
+                        <p class="subtitle">LOL PRO PLAYERS STATS SYSTEM</p>
+                    </div>
+                </div>
+                <div class="top-decoration">
+                    <i class="fas fa-trophy"></i>
+                </div>
+            </div>
+        </header>
+
+        <!-- Action Bar -->
+        <div class="action-bar-container">
+            <div class="action-bar">
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="showImportModal()">
+                        <i class="fas fa-globe"></i> Import from Leaguepedia
+                    </button>
+                    <button class="btn btn-success" onclick="showAddModal()">
+                        <i class="fas fa-user-plus"></i> Recruit Player
+                    </button>
+                    <button class="btn btn-warning" onclick="editSelectedPlayer()">
+                        <i class="fas fa-pen"></i> Edit
+                    </button>
+                    <button class="btn btn-danger" onclick="deleteSelectedPlayer()">
+                        <i class="fas fa-trash-alt"></i> Eliminate
+                    </button>
+                    <button class="btn btn-text" onclick="clearAllPlayers()">
+                        <i class="fas fa-fire"></i> Clear Arena
+                    </button>
+                </div>
+
+                <div class="search-box">
+                    <i class="fas fa-search search-icon-left"></i>
+                    <input type="text" id="searchInput" placeholder="Hunt for Players..." oninput="handleSearch()">
+                    <i class="fas fa-crosshairs search-indicator"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Stats -->
+        <div class="dashboard-grid">
+            <div class="stat-card card-cyan">
+                <div class="stat-info">
+                    <span class="stat-label">PLAYERS</span>
+                    <span class="stat-value" id="statTotalPlayers">0</span>
+                </div>
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+            </div>
+
+            <div class="stat-card card-green">
+                <div class="stat-info">
+                    <span class="stat-label">AVG WIN RATE</span>
+                    <span class="stat-value" id="statAvgWinRate">0%</span>
+                </div>
+                <div class="stat-icon">
+                    <i class="fas fa-trophy"></i>
+                </div>
+            </div>
+
+            <div class="stat-card card-purple">
+                <div class="stat-info">
+                    <span class="stat-label">AVG KDA</span>
+                    <span class="stat-value" id="statAvgKDA">0.00</span>
+                </div>
+                <div class="stat-icon">
+                    <i class="fas fa-crosshairs"></i>
+                </div>
+            </div>
+
+            <div class="stat-card card-gold">
+                <div class="stat-info">
+                    <span class="stat-label">TOTAL BATTLES</span>
+                    <span class="stat-value" id="statTotalGames">0</span>
+                </div>
+                <div class="stat-icon">
+                    <i class="fas fa-gamepad"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Area -->
+        <div class="data-section">
+            <div class="section-header">
+                <div class="section-title">
+                    <i class="fas fa-table"></i>
+                    <h2>PLAYER LEADERBOARD</h2>
+                </div>
+                <div class="section-meta">
+                    <span id="tableCount">0 Players in arena</span>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table id="playersTable" class="arena-table">
+                    <thead>
+                        <tr>
+                            <th onclick="sortBy('ign')">PLAYER <i class="fas fa-sort"></i></th>
+                            <th onclick="sortBy('role')">ROLE <i class="fas fa-sort"></i></th>
+                            <th onclick="sortBy('team')">SQUAD <i class="fas fa-sort"></i></th>
+                            <th onclick="sortBy('games_played')" class="text-right">BATTLES <i class="fas fa-sort"></i>
+                            </th>
+                            <th onclick="sortBy('win_rate')" class="text-right">WIN % <i class="fas fa-sort"></i></th>
+                            <th onclick="sortBy('kda')" class="text-right">KDA <i class="fas fa-sort"></i></th>
+                            <th onclick="sortBy('gold_per_min')" class="text-right">GOLD/M <i class="fas fa-sort"></i>
+                            </th>
+                            <th onclick="sortBy('cs_per_min')" class="text-right">CS/M <i class="fas fa-sort"></i></th>
+                            <th onclick="sortBy('dmg_per_min')" class="text-right">DMG/M <i class="fas fa-sort"></i>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="playerTableBody">
+                        <!-- Rows rendered by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div id="statusBar" class="status-bar">
+            <i class="fas fa-bolt"></i>
+            <span id="statusText">ARENA READY - Select a Player to begin</span>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Add Player Modal -->
+    <div id="playerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Recruit Player</h2>
+                <button class="modal-close" onclick="closePlayerModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="playerForm">
+                    <input type="hidden" id="playerId">
+
+                    <div class="form-section">
+                        <h3>Identity</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>IGN</label>
+                                <input type="text" id="playerIGN" required placeholder="e.g. Faker">
+                            </div>
+                            <div class="form-group">
+                                <label>Role</label>
+                                <select id="playerRole">
+                                    <option value="Top">Top</option>
+                                    <option value="Jungle">Jungle</option>
+                                    <option value="Mid">Mid</option>
+                                    <option value="ADC">ADC</option>
+                                    <option value="Support">Support</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Squad</label>
+                                <input type="text" id="playerTeam" placeholder="e.g. T1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Combat Stats</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Battles</label>
+                                <input type="number" id="playerGames" min="0" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Win Rate %</label>
+                                <input type="number" id="playerWinRate" step="0.1" min="0" max="100" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label>KDA</label>
+                                <input type="number" id="playerKDA" step="0.01" min="0" value="0">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Gold/Min</label>
+                                <input type="number" id="playerGPM" step="0.1" min="0" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label>CS/Min</label>
+                                <input type="number" id="playerCSPM" step="0.1" min="0" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Dmg/Min</label>
+                                <input type="number" id="playerDPM" step="0.1" min="0" value="0">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closePlayerModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="savePlayer()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Modal -->
+    <div id="importModal" class="modal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2>Import Data</h2>
+                <button class="modal-close" onclick="closeImportModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Tournament</label>
+                    <select id="importTournament">
+                        <option value="LCK">LCK</option>
+                        <option value="LPL">LPL</option>
+                        <option value="LEC">LEC</option>
+                        <option value="LCS">LCS / LTA (Americas)</option>
+                        <option value="Worlds">Worlds</option>
+                        <option value="MSI">MSI</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Year</label>
+                    <select id="importYear">
+                        <option value="2025">2025</option>
+                        <option value="2024">2024</option>
+                        <option value="2023">2023</option>
+                    </select>
+                </div>
+
+                <div id="importProgress" class="progress-container" style="display: none;">
+                    <div class="spinner"></div>
+                    <p id="importStatus">Starting import...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeImportModal()">Close</button>
+                <button class="btn btn-primary" id="importBtn" onclick="doImport()">Start Import</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2 id="confirmTitle">Confirm</h2>
+                <button class="modal-close" onclick="closeConfirmModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmMessage">Are you sure?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeConfirmModal()">Cancel</button>
+                <button class="btn btn-danger" id="confirmYes">Yes, Proceed</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Player Profile Modal -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content modal-profile">
+            <div class="modal-header">
+                <h2>Player Profile</h2>
+                <button class="modal-close" onclick="closeProfileModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="profile-loading" id="profileLoading">
+                    <div class="spinner"></div>
+                    <span>Loading profile...</span>
+                </div>
+                <div class="profile-content" id="profileContent" style="display: none;">
+                    <!-- Header with Image -->
+                    <div class="profile-header">
+                        <div class="profile-image-container">
+                            <img id="profileImage" class="profile-image" src="" alt="Player"
+                                referrerpolicy="no-referrer">
+                            <div id="profilePlaceholder" class="profile-placeholder">
+                                <span id="profileInitials">?</span>
+                            </div>
+                        </div>
+                        <div class="profile-info">
+                            <h2 id="profileName" class="profile-name">Player Name</h2>
+                            <div class="profile-meta">
+                                <span id="profileTeam" class="profile-team"></span>
+                                <span class="profile-separator">•</span>
+                                <span id="profileRole" class="profile-role"></span>
+                                <span class="profile-separator" id="profileCountrySep">•</span>
+                                <span id="profileCountry" class="profile-country"></span>
+                            </div>
+                            <div id="profileRealName" class="profile-real-name"></div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Stats -->
+                    <div class="profile-quick-stats">
+                        <div class="quick-stat">
+                            <span class="quick-stat-value" id="profileGames">0</span>
+                            <span class="quick-stat-label">Games</span>
+                        </div>
+                        <div class="quick-stat">
+                            <span class="quick-stat-value" id="profileWinRate">0%</span>
+                            <span class="quick-stat-label">Win Rate</span>
+                        </div>
+                        <div class="quick-stat">
+                            <span class="quick-stat-value" id="profileKDA">0.00</span>
+                            <span class="quick-stat-label">KDA</span>
+                        </div>
+                    </div>
+
+                    <!-- Chart & Detailed Stats -->
+                    <div class="profile-stats-container">
+                        <div class="profile-chart">
+                            <canvas id="statsChart"></canvas>
+                        </div>
+                        <div class="profile-detailed-stats">
+                            <h3>Detailed Statistics</h3>
+                            <div class="detail-stats-grid">
+                                <div class="detail-stat">
+                                    <span class="detail-label">Avg Kills</span>
+                                    <span class="detail-value" id="profileAvgKills">0</span>
+                                </div>
+                                <div class="detail-stat">
+                                    <span class="detail-label">Avg Deaths</span>
+                                    <span class="detail-value" id="profileAvgDeaths">0</span>
+                                </div>
+                                <div class="detail-stat">
+                                    <span class="detail-label">Avg Assists</span>
+                                    <span class="detail-value" id="profileAvgAssists">0</span>
+                                </div>
+                                <div class="detail-stat">
+                                    <span class="detail-label">Gold/Min</span>
+                                    <span class="detail-value" id="profileGPM">0</span>
+                                </div>
+                                <div class="detail-stat">
+                                    <span class="detail-label">CS/Min</span>
+                                    <span class="detail-value" id="profileCSPM">0</span>
+                                </div>
+                                <div class="detail-stat">
+                                    <span class="detail-label">DMG/Min</span>
+                                    <span class="detail-value" id="profileDPM">0</span>
+                                </div>
+                            </div>
+                            <div class="total-stats">
+                                <h4>Career Totals</h4>
+                                <div class="total-stats-row">
+                                    <span>Total Kills: <strong id="profileTotalKills">0</strong></span>
+                                    <span>Total Deaths: <strong id="profileTotalDeaths">0</strong></span>
+                                    <span>Total Assists: <strong id="profileTotalAssists">0</strong></span>
+                                </div>
+                                <div class="total-stats-row">
+                                    <span>Total Gold: <strong id="profileTotalGold">0</strong></span>
+                                    <span>Total CS: <strong id="profileTotalCS">0</strong></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-warning" onclick="editFromProfile()">
+                    <i class="fas fa-edit"></i> Edit Player
+                </button>
+                <button class="btn btn-secondary" onclick="closeProfileModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Overlay -->
+    <div id="loginOverlay" class="login-overlay">
+        <div class="login-card">
+            <div class="login-header">
+                <i class="fas fa-swords login-logo"></i>
+                <h1>PRO STATS <span class="highlight">ARENA</span></h1>
+                <p>LOGIN</p>
+            </div>
+
+            <div class="login-form">
+                <div class="form-group">
+                    <label><i class="fas fa-user"></i> Username</label>
+                    <input type="text" id="loginUser" placeholder="Enter username">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-lock"></i> Password</label>
+                    <input type="password" id="loginPass" placeholder="Enter password">
+                </div>
+
+                <div class="login-credentials">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Default: <strong>user</strong> / <strong>password</strong></span>
+                </div>
+
+                <button class="btn btn-primary btn-block" onclick="attemptLogin()">
+                    ENTER ARENA
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='js/arena.js') }}"></script>
+</body>
+
+</html>
